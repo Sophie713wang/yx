@@ -1,0 +1,836 @@
+// Scriptable 脚本代码
+const html = `
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>APL RPG - Final V7</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --p-bg: #1f1135; 
+            --p-panel: #faeef5;
+            --p-border-outer: #3e1f5c;
+            --p-border-inner: #b892cf;
+            --p-text: #2d1b36;
+            --p-hp: #ff4d88;
+            --p-mp: #4db8ff;
+            --p-stamina: #4dffb8;
+            --p-exp: #ffd700;
+            --p-gold: #ff9900;
+            --p-accent: #e0548f;
+            --p-btn: #f3c6db;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--p-bg); background-image: linear-gradient(rgba(224, 84, 143, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(224, 84, 143, 0.1) 1px, transparent 1px); background-size: 20px 20px; color: var(--p-text); font-family: 'VT323', 'Press Start 2P', monospace; font-size: 18px; padding-bottom: 80px; image-rendering: pixelated; }
+
+        .pixel-panel { background-color: var(--p-panel); border: 4px solid var(--p-border-outer); box-shadow: inset -4px -4px 0 var(--p-border-inner), inset 4px 4px 0 #ffffff; border-radius: 0; padding: 15px; margin-bottom: 15px; position: relative; }
+        .panel-title { font-family: 'Press Start 2P', cursive; font-size: 12px; margin-bottom: 15px; border-bottom: 2px dashed var(--p-border-outer); padding-bottom: 5px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; color: #4a1b5e; }
+
+        .hud-bar { background-color: var(--p-panel); border-bottom: 4px solid var(--p-border-outer); display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; position: sticky; top: 0; z-index: 90; }
+        .player-info { display: flex; align-items: center; gap: 10px; }
+        .avatar { width: 40px; height: 40px; background: #fff; border: 3px solid var(--p-border-outer); display: flex; justify-content: center; align-items: center; font-size: 20px; }
+        .lvl-name { display: flex; flex-direction: column; line-height: 1; }
+        .lvl-name .name { font-family: 'Press Start 2P', cursive; font-size: 10px; color: #e0548f; margin-bottom: 4px; }
+        .lvl-name .lvl { font-size: 16px; }
+        .exp-bar-bg { width: 100px; height: 10px; background: #333; border: 2px solid var(--p-border-outer); margin-top: 4px; }
+        .exp-bar-fill { height: 100%; background: var(--p-exp); width: 0%; transition: width 0.3s; }
+        .coins { background: #fff; border: 3px solid var(--p-border-outer); padding: 2px 8px; font-size: 18px; display: flex; align-items: center; gap: 5px; color: #d97706;}
+
+        .main-grid { display: grid; grid-template-columns: 1fr; gap: 15px; padding: 15px; }
+        @media (min-width: 768px) { .main-grid { grid-template-columns: 1fr 1.5fr 1fr; max-width: 1200px; margin: 0 auto; } }
+
+        .map-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .map-btn { background: #fff; border: 3px solid var(--p-border-outer); box-shadow: 3px 3px 0 var(--p-border-outer); padding: 15px 10px; text-align: center; cursor: pointer; transition: all 0.1s; }
+        .map-btn:active { transform: translate(3px, 3px); box-shadow: 0px 0px 0 var(--p-border-outer); }
+        .map-btn .icon { font-size: 24px; display: block; margin-bottom: 8px; }
+        .map-btn .title { font-size: 16px; font-weight: bold; color: #4a1b5e; }
+
+        .stat-row { display: flex; align-items: center; margin-bottom: 12px; font-size: 16px; }
+        .stat-label { width: 40px; font-family: 'Press Start 2P', cursive; font-size: 10px; color: #e0548f;}
+        .bar-bg { flex: 1; height: 16px; background: #333; border: 2px solid var(--p-border-outer); margin: 0 10px; position: relative; }
+        .bar-fill { height: 100%; transition: width 0.3s; }
+        .stat-val { width: 50px; text-align: right; font-weight: bold; }
+
+        .checkin-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+        .checkin-day { aspect-ratio: 1; background: #ccc; border: 2px solid var(--p-border-outer); display: flex; justify-content: center; align-items: center; font-size: 14px; }
+        .checkin-day.checked { background: var(--p-accent); color: #fff; text-shadow: 1px 1px 0 #000; font-size: 18px; }
+
+        .task-item { display: flex; align-items: center; padding: 10px; background: #fff; border: 2px solid var(--p-border-outer); margin-bottom: 10px; }
+        .task-check { width: 20px; height: 20px; border: 2px solid var(--p-border-outer); margin-right: 10px; cursor: pointer; background: #eee; flex-shrink: 0; }
+        .task-item.done .task-check { background: var(--p-accent); }
+        .task-item.done .task-text { text-decoration: line-through; color: #999; }
+        .task-text { flex: 1; }
+        .del-btn { color: #ff4d88; font-weight: bold; padding: 0 5px; cursor: pointer; }
+
+        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; background: var(--p-panel); border-top: 4px solid var(--p-border-outer); display: flex; justify-content: space-around; padding: 10px 0 20px; z-index: 100; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; font-size: 14px; cursor: pointer; font-weight: bold; color: #e0548f;}
+        .nav-item .icon { font-size: 24px; margin-bottom: 4px; }
+
+        .sub-page { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--p-bg); z-index: 200; padding: 20px; padding-top: 60px; transform: translateY(100%); transition: transform 0.2s steps(5); overflow-y: auto; }
+        .sub-page.open { transform: translateY(0); }
+        .back-btn { position: absolute; top: 10px; left: 10px; background: var(--p-panel); border: 3px solid var(--p-border-outer); padding: 5px 15px; font-weight: bold; cursor: pointer; color: #4a1b5e;}
+        .sub-page .pixel-panel { background: var(--p-panel); }
+        .sub-page h2 { font-family: 'Press Start 2P', cursive; font-size: 14px; color: #faeef5; text-align: center; margin-bottom: 20px; text-shadow: 2px 2px 0 var(--p-border-outer); }
+
+        .input-box { display: flex; gap: 5px; margin-top: 10px; }
+        .input-box input { flex: 1; padding: 8px; border: 2px solid var(--p-border-outer); font-family: 'VT323'; font-size: 18px; outline: none; }
+        .input-box button { background: var(--p-btn); color: #4a1b5e; border: 2px solid var(--p-border-outer); padding: 0 15px; font-weight: bold; cursor: pointer; font-family: 'VT323'; font-size: 18px; }
+
+        .floating-text { position: fixed; font-family: 'Press Start 2P', cursive; font-size: 12px; color: #ffd700; text-shadow: 2px 2px 0 #000; pointer-events: none; z-index: 999; animation: floatUp 1s steps(5) forwards; }
+        @keyframes floatUp { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-50px); } }
+
+        .fold-header { cursor: pointer; display: flex; justify-content: space-between; background: #e6d3ee; padding: 10px; border: 2px solid var(--p-border-outer); margin-bottom: 10px; font-weight: bold; color: #4a1b5e;}
+        .fold-content { display: none; padding-left: 10px; }
+        .fold-content.open { display: block; }
+
+        .badge-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .badge-item { text-align: center; padding: 10px; border: 3px solid var(--p-border-outer); background: #d6c1e0; transition: all 0.3s; position: relative; }
+        .badge-item.unlocked { background: linear-gradient(135deg, #ffd700, #ff9900); box-shadow: 0 0 15px #ffd700; transform: scale(1.05); }
+        .badge-icon { font-size: 30px; margin-bottom: 5px; filter: grayscale(1); opacity: 0.5; transition: all 0.5s; }
+        .badge-item.unlocked .badge-icon { filter: grayscale(0); opacity: 1; transform: rotate(360deg); }
+        .badge-name { font-size: 12px; font-weight: bold; color: #2d1b36; }
+
+        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; text-align: center; }
+        .cal-cell { padding: 8px 0; border: 1px solid #b892cf; background: #fff; cursor: pointer; font-size: 16px; }
+        .cal-cell.has-data { background: var(--p-accent); color: #fff; font-weight: bold; border-color: var(--p-border-outer); }
+        
+        /* 图表容器 */
+        .chart-box { width: 100%; height: 160px; background: #fff; border: 2px solid var(--p-border-outer); margin-top: 10px; }
+        canvas { width: 100%; height: 100%; image-rendering: pixelated; }
+    </style>
+</head>
+<body>
+
+    <div class="hud-bar">
+        <div class="player-info">
+            <div class="avatar">👤</div>
+            <div class="lvl-name">
+                <span class="name" id="playerTitle">NEWBIE</span>
+                <span class="lvl">LV.<span id="playerLevel">1</span></span>
+                <div class="exp-bar-bg"><div class="exp-bar-fill" id="expFill"></div></div>
+            </div>
+        </div>
+        <div class="coins">🪙 <span id="coinCount">100</span></div>
+    </div>
+
+    <div class="main-grid">
+        <div class="left-col">
+            <div class="pixel-panel">
+                <div class="panel-title">CHECK-IN <span>签到</span></div>
+                <div class="checkin-grid" id="checkinGrid"></div>
+                <div id="checkinBtnContainer" style="margin-top:15px; text-align:center;"></div>
+            </div>
+            <div class="pixel-panel">
+                <div class="panel-title">LOG <span>广播</span></div>
+                <div id="recent-activity" style="font-size:14px; line-height:1.5; color:#7b2cbf;"></div>
+            </div>
+        </div>
+
+        <div class="center-col">
+            <div class="pixel-panel">
+                <div class="panel-title">MAIN MENU <span>主城</span></div>
+                <div class="map-grid">
+                    <div class="map-btn" onclick="openSubPage('todo')"><span class="icon">📜</span><div class="title">TodoList</div></div>
+                    <div class="map-btn" onclick="openSubPage('sop')"><span class="icon">⚔️</span><div class="title">SOP 大厅</div></div>
+                    <div class="map-btn" onclick="openSubPage('dungeon')"><span class="icon">🏥</span><div class="title">APL 副本</div></div>
+                    <div class="map-btn" onclick="openSubPage('fun')"><span class="icon">🎒</span><div class="title">战利品</div></div>
+                    <div class="map-btn" onclick="openSubPage('shop')"><span class="icon">🏪</span><div class="title">补给站</div></div>
+                    <div class="map-btn" onclick="openSubPage('badges')"><span class="icon">🏅</span><div class="title">荣誉勋章</div></div>
+                    <div class="map-btn" onclick="openSubPage('health-record')"><span class="icon">🔋</span><div class="title">属性面板</div></div>
+                    <div class="map-btn" onclick="openSubPage('stats')"><span class="icon">📊</span><div class="title">战绩复盘</div></div>
+                </div>
+            </div>
+            <div class="pixel-panel" id="weatherPanel" onclick="fetchWeather()" style="text-align:center; cursor:pointer; font-size:16px; color:#7b2cbf;">🌤️ 点击获取世界情报</div>
+        </div>
+
+        <div class="right-col">
+            <div class="pixel-panel">
+                <div class="panel-title">STATUS <span id="healthStatus" style="color:#4dffb8;">GOOD</span></div>
+                <div class="stat-row"><span class="stat-label">HP</span><div class="bar-bg"><div class="bar-fill" id="hpBar" style="background:var(--p-hp); width:100%;"></div></div><span class="stat-val" id="val-temp">--°C</span></div>
+                <div class="stat-row"><span class="stat-label">MP</span><div class="bar-bg"><div class="bar-fill" id="mpBar" style="background:var(--p-mp); width:0%;"></div></div><span class="stat-val" id="val-water">0杯</span></div>
+                <div class="stat-row"><span class="stat-label">STA</span><div class="bar-bg"><div class="bar-fill" id="staminaBar" style="background:var(--p-stamina); width:0%;"></div></div><span class="stat-val" id="val-steps">--步</span></div>
+                <div style="margin-top: 20px; border-top: 2px dashed #b892cf; padding-top: 15px;">
+                    <div style="font-size:16px; font-weight:bold; margin-bottom:10px;">🏥 驻扎天数</div>
+                    <div style="display:flex; justify-content:space-between; font-size:14px;">
+                        <span>入驻: <b id="hospital-date">未知</b></span>
+                        <span>已驻: <b id="hospital-days">0</b> 天</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bottom-nav">
+        <div class="nav-item" onclick="closeSubPage()"><span class="icon">🏠</span>大本营</div>
+        <div class="nav-item" onclick="openSubPage('notes')"><span class="icon">📝</span>手札</div>
+        <div class="nav-item" onclick="openSubPage('settings')"><span class="icon">⚙️</span>系统</div>
+    </div>
+
+    <div id="subPage" class="sub-page">
+        <div class="back-btn" onclick="closeSubPage()">← 返回</div>
+        <h2 id="subPageTitle">TITLE</h2>
+        <div id="subPageContent" style="max-width: 600px; margin: 0 auto;"></div>
+    </div>
+
+    <script>
+        const generateBadges = () => {
+            const list = [];
+            const icons = ['🔥','🛡️','🧋','🏃','👑','🌙','⚔️','💎','🎯','🍀','🌟','💖','🍰','📚','🎮','🎬','🎧','📻','💧','☀️','🌧️','⛄','🍎','🍔','💊','🏥','💉','🩸','🧬','🧪','🩺','🏆','🎖️','🥇','🥈','🥉','🎗️','💮','㊗️','🈵','💯','💢'];
+            const names = ['初来乍到','签到七日','半月坚守','满月战士','季度达人','半年坚守','全年无休','Lv.5 达人','Lv.10 传奇','满级大佬','首通诱导','腰穿通关','巩固循环1','巩固循环2','巩固循环3','巩固循环4','维持期开启','稳住别浪','健康卫士','属性拉满','第一杯奶茶','大餐一顿','烧烤自由','咖啡续命','喝水狂魔','步数过万','早睡冠军','按时吃药','战利品+1','战利品+5','战利品+10','影视达人','读书破万','游戏通关','广播剧迷','播客常客','金币破百','金币破千','一掷千金','连续签到30天','连续签到100天','终极探索者'];
+            for(let i=0; i<42; i++) {
+                list.push({ id: 'b' + i, name: names[i], icon: icons[i], unlocked: false });
+            }
+            return list;
+        };
+
+        let gameData = {
+            player: { level: 1, exp: 0, coins: 100, title: 'NEWBIE', checkinStreak: 0, lastCheckinDate: '' },
+            todo: [{ id: 't1', text: '买护手霜', done: false }],
+            sop: { 
+                daily: [{ id: 'd1', text: '早睡 23:00', done: false }, { id: 'd2', text: '按时吃药', done: false }],
+                weekly: [{ id: 'w1', text: '大扫除', done: false }],
+                monthly: [{ id: 'm1', text: '整理照片', done: false }],
+                yearly: [{ id: 'y1', text: '全面体检', done: false }]
+            },
+            cycles: { daily: '', weekly: '', monthly: '', yearly: '' },
+            health: {}, 
+            hospital: { date: '' }, 
+            collections: { 
+                games: { pending: [{text:'塞尔达'}], done: [] }, 
+                movies: { pending: [{text:'奥本海默'}], done: [] }, 
+                books: { pending: [], done: [] },
+                dramas: { pending: [{text:'某某广播剧'}], done: [] },
+                podcasts: { pending: [{text:'随机波动'}], done: [] }
+            },
+            shop: [{ id: 's1', name: '喝一杯奶茶', price: 50, icon: '🧋' }],
+            badges: generateBadges(),
+            activities: [],
+            lastTodoDate: '' 
+        };
+
+        const today = new Date();
+        const todayStr = today.toISOString().split('T')[0];
+        const getWeekStr = (d) => { 
+            const target = new Date(d.valueOf()); 
+            const dayNr = (d.getDay() + 6) % 7; 
+            target.setDate(target.getDate() - dayNr + 3); 
+            const firstThursday = target.valueOf(); 
+            target.setMonth(0, 1); 
+            if (target.getDay() !== 4) { target.setMonth(0, 1 + ((4 - target.getDay() + 7) % 7)); } 
+            return d.getFullYear() + '-' + (1 + Math.ceil((firstThursday - target) / 604800000)); 
+        };
+        const todayWeek = getWeekStr(today);
+        const todayMonth = today.getFullYear() + '-' + (today.getMonth() + 1);
+        const todayYear = today.getFullYear().toString();
+
+        function init() {
+            const saved = localStorage.getItem('APL_Pixel_v7');
+            if (saved) {
+                gameData = JSON.parse(saved);
+                if(!gameData.badges || gameData.badges.length < 42) gameData.badges = generateBadges();
+            }
+            checkCycles(); 
+            checkTodoPenalty(); 
+            updateHUD();
+            renderCheckin();
+            renderActivities();
+            renderHealthPanel();
+            fetchWeather();
+        }
+
+        function saveGame() { localStorage.setItem('APL_Pixel_v7', JSON.stringify(gameData)); }
+
+        function checkCycles() {
+            let changed = false;
+            if (gameData.cycles.daily !== todayStr) { gameData.sop.daily.forEach(i => i.done = false); gameData.cycles.daily = todayStr; changed = true; }
+            if (gameData.cycles.weekly !== todayWeek) { gameData.sop.weekly.forEach(i => i.done = false); gameData.cycles.weekly = todayWeek; changed = true; }
+            if (gameData.cycles.monthly !== todayMonth) { gameData.sop.monthly.forEach(i => i.done = false); gameData.cycles.monthly = todayMonth; changed = true; }
+            if (gameData.cycles.yearly !== todayYear) { gameData.sop.yearly.forEach(i => i.done = false); gameData.cycles.yearly = todayYear; changed = true; }
+            if (changed) saveGame();
+        }
+
+        // --- 惩罚机制：没做完 Todo 扣 50 金币 ---
+        function checkTodoPenalty() {
+            if (gameData.lastTodoDate !== todayStr) {
+                const hasUnfinished = gameData.todo.some(t => !t.done);
+                if (hasUnfinished && gameData.lastTodoDate !== '') {
+                    gameData.player.coins = Math.max(0, gameData.player.coins - 50); // 扣除 50 金币
+                    addActivity('⚠️ 惩罚：昨日 TodoList 未完成，扣除 50 金币！');
+                    setTimeout(() => alert('⚠️ 警告：因昨日未完成 Todo，扣除 50 金币！去补给站买不了东西了哦！'), 500);
+                }
+                gameData.todo.forEach(t => t.done = false);
+                gameData.lastTodoDate = todayStr;
+                saveGame();
+            }
+        }
+
+        function gainReward(exp, coin, reason) {
+            gameData.player.exp += exp;
+            gameData.player.coins += coin;
+            showFloat(`+${exp} EXP`, '#ffd700');
+            if(coin > 0) showFloat(`+${coin} 🪙`, '#ff9900', 60);
+            
+            if(gameData.player.exp >= gameData.player.level * 100) {
+                gameData.player.exp -= gameData.player.level * 100;
+                gameData.player.level++;
+                setTimeout(() => alert('LEVEL UP! 等级提升！获得50金币！'), 300);
+                gameData.player.coins += 50;
+                if(gameData.player.level >= 5) unlockBadge('b7');
+                if(gameData.player.level >= 10) unlockBadge('b8');
+            }
+            if (gameData.player.level >= 10) gameData.player.title = 'LEGEND';
+            else if (gameData.player.level >= 5) gameData.player.title = 'GUARDIAN';
+            else if (gameData.player.level >= 3) gameData.player.title = 'EXPLORER';
+            
+            if(reason.includes('早睡')) unlockBadge('b6');
+            addActivity(`完成[${reason}]，获得奖励。`);
+            saveGame(); updateHUD();
+        }
+
+        function showFloat(text, color, offset = 0) {
+            const el = document.createElement('div');
+            el.className = 'floating-text';
+            el.innerText = text;
+            el.style.color = color;
+            el.style.left = `calc(50% + ${offset}px)`;
+            el.style.top = '40%';
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 1000);
+        }
+
+        function updateHUD() {
+            document.getElementById('playerTitle').innerText = gameData.player.title;
+            document.getElementById('playerLevel').innerText = gameData.player.level;
+            document.getElementById('coinCount').innerText = gameData.player.coins;
+            const p = Math.min((gameData.player.exp / (gameData.player.level * 100)) * 100, 100);
+            document.getElementById('expFill').style.width = `${p}%`;
+        }
+
+        function renderCheckin() {
+            const grid = document.getElementById('checkinGrid');
+            grid.innerHTML = '';
+            const streak = gameData.player.checkinStreak % 8;
+            for (let i = 1; i <= 7; i++) {
+                const checked = (gameData.player.lastCheckinDate === todayStr && streak >= i) || (gameData.player.lastCheckinDate !== todayStr && streak >= i);
+                grid.innerHTML += `<div class="checkin-day ${checked ? 'checked' : ''}">${checked ? '🎁' : i}</div>`;
+            }
+            const btn = document.getElementById('checkinBtnContainer');
+            if (gameData.player.lastCheckinDate !== todayStr) {
+                btn.innerHTML = `<button onclick="doCheckin()" style="width:100%; padding:8px; font-family:'VT323'; font-size:20px; background:#e0548f; color:#fff; border:2px solid #3e1f5c; cursor:pointer;">📥 领取今日签到</button>`;
+            } else {
+                btn.innerHTML = `<div style="color:#7b2cbf; font-size:16px;">✅ 今日已签到 (连续 ${gameData.player.checkinStreak} 天)</div>`;
+            }
+        }
+
+        function doCheckin() {
+            gameData.player.lastCheckinDate = todayStr;
+            gameData.player.checkinStreak++;
+            let rewardCoin = 20;
+            if(gameData.player.checkinStreak % 7 === 0) rewardCoin = 100;
+            gainReward(20, rewardCoin, '每日签到');
+            if(gameData.player.checkinStreak >= 7) unlockBadge('b1');
+            if(gameData.player.checkinStreak >= 30) unlockBadge('b39');
+            if(gameData.player.checkinStreak >= 100) unlockBadge('b40');
+            renderCheckin();
+        }
+
+        function addActivity(text) {
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            gameData.activities.unshift({ text, time });
+            if (gameData.activities.length > 4) gameData.activities.pop();
+            renderActivities();
+        }
+        function renderActivities() {
+            const c = document.getElementById('recent-activity');
+            c.innerHTML = gameData.activities.length === 0 ? '<div style="color:#888;">暂无记录...</div>' : '';
+            gameData.activities.forEach(a => {
+                c.innerHTML += `<div style="border-bottom:1px dashed #b892cf; padding:4px 0;">[${a.time}] ${a.text}</div>`;
+            });
+        }
+
+        function renderHealthPanel() {
+            const h = gameData.health[todayStr] || { temp: '', steps: '', water: 0 };
+            const temp = parseFloat(h.temp) || 36.5;
+            let hp = 100; let hpColor = '#4dffb8'; let status = 'GOOD'; let statusColor = '#4dffb8';
+            if(temp >= 38) { hp = 20; hpColor = '#ff4d88'; status = 'CRITICAL'; statusColor = '#ff4d88'; }
+            else if(temp >= 37.3) { hp = 50; hpColor = '#ff9900'; status = 'WARNING'; statusColor = '#ff9900'; }
+            
+            document.getElementById('hpBar').style.width = `${hp}%`;
+            document.getElementById('hpBar').style.background = hpColor;
+            document.getElementById('val-temp').innerText = h.temp ? h.temp + '°C' : '--°C';
+            const sEl = document.getElementById('healthStatus');
+            sEl.innerText = status; sEl.style.color = statusColor;
+
+            const water = h.water || 0;
+            document.getElementById('mpBar').style.width = `${Math.min((water/8)*100, 100)}%`;
+            document.getElementById('val-water').innerText = water + '杯';
+
+            const steps = parseInt(h.steps) || 0;
+            document.getElementById('staminaBar').style.width = `${Math.min((steps/5000)*100, 100)}%`;
+            document.getElementById('val-steps').innerText = steps + '步';
+
+            if (steps >= 5000) unlockBadge('b3');
+
+            if (gameData.hospital.date) {
+                const diff = Math.ceil((new Date() - new Date(gameData.hospital.date)) / (1000 * 60 * 60 * 24));
+                document.getElementById('hospital-days').innerText = diff > 0 ? diff : 0;
+                document.getElementById('hospital-date').innerText = gameData.hospital.date;
+            }
+        }
+
+        // --- 加强版天气建议 ---
+        function fetchWeather() {
+            const p = document.getElementById('weatherPanel');
+            p.innerText = '⏳ 获取情报中...';
+            fetch('https://api.open-meteo.com/v1/forecast?latitude=31.23&longitude=121.47&current_weather=true')
+                .then(res => res.json())
+                .then(data => {
+                    const t = data.current_weather.temperature;
+                    const code = data.current_weather.weathercode;
+                    let icon = '☀️'; let desc = '晴朗'; let clothes = ''; let advice = '';
+                    
+                    if (t >= 28) {
+                        icon = '☀️'; desc = '炎热'; clothes = '短袖、短裤、小裙子'; advice = '注意防暑降温，待在阴凉处，多喝水！';
+                    } else if (t >= 18 && t < 28) {
+                        icon = '🌤️'; desc = '舒适'; clothes = '长袖、薄外套或卫衣'; advice = '天气刚好，非常适合出门散散步（戴好口罩）。';
+                    } else if (t >= 10 && t < 18) {
+                        icon = '🍂'; desc = '微凉'; clothes = '毛衣、夹克、风衣'; advice = '早晚温差大，作为小白一定要注意保暖，千万别感冒。';
+                    } else {
+                        icon = '⛄'; desc = '寒冷'; clothes = '厚羽绒服、毛衣、围巾手套'; advice = '温度很低！减少室外活动，出门一定全副武装防寒！';
+                    }
+
+                    if (code >= 51 && code <= 67) { icon = '🌧️'; desc = '下雨'; clothes += ' + 雨伞/雨衣'; advice += ' 地面湿滑，小心走路防跌倒。'; }
+                    if (code >= 95) { icon = '⛈️'; desc = '雷阵雨'; clothes += ' + 雨伞'; advice = ' 打雷了，尽量呆在室内不要出门。'; }
+
+                    p.innerHTML = `${icon} ${desc} ${t}°C<br><span style="font-size:13px; color:#e0548f;">穿搭: ${clothes}</span><br><span style="font-size:12px; color:#666;">💡 ${advice}</span>`;
+                }).catch(() => p.innerText = '📡 获取失败');
+        }
+
+        function unlockBadge(id) {
+            const b = gameData.badges.find(x => x.id === id);
+            if (b && !b.unlocked) {
+                b.unlocked = true; saveGame();
+                addActivity(`[成就] 解锁勋章：${b.name}`);
+                setTimeout(() => alert(`🏅 惊喜解锁！获得勋章：${b.name}`), 300);
+            }
+        }
+
+        const subPage = document.getElementById('subPage');
+        const subTitle = document.getElementById('subPageTitle');
+        const subContent = document.getElementById('subPageContent');
+
+        function openSubPage(type) {
+            subPage.classList.add('open');
+            subContent.innerHTML = '';
+
+            if (type === 'todo') {
+                subTitle.innerText = 'TODO LIST';
+                subContent.innerHTML = `
+                    <div class="pixel-panel" style="border-color: #ff4d88;">
+                        <div class="panel-title" style="color:#ff4d88;">📜 每日硬核任务 (必做)</div>
+                        <div style="font-size:14px; color:#888; margin-bottom:10px;">* 若未完成，明日扣除 50 金币！</div>
+                        <div id="todo-list"></div>
+                        <div class="input-box"><input type="text" id="in-todo" placeholder="添加硬核任务..."><button onclick="addTodo()">+</button></div>
+                    </div>
+                `;
+                renderTodo();
+            }
+            else if (type === 'sop') {
+                subTitle.innerText = 'SOP HALL';
+                subContent.innerHTML = `
+                    <div class="pixel-panel"><div class="panel-title">☀️ 每日 SOP</div><div id="sop-daily"></div><div class="input-box"><input type="text" id="in-sop-daily" placeholder="添加每日..."><button onclick="addSop('daily')">+</button></div></div>
+                    <div class="pixel-panel"><div class="panel-title">📅 每周 SOP</div><div id="sop-weekly"></div><div class="input-box"><input type="text" id="in-sop-weekly" placeholder="添加每周..."><button onclick="addSop('weekly')">+</button></div></div>
+                    <div class="pixel-panel"><div class="panel-title">📆 每月 SOP</div><div id="sop-monthly"></div><div class="input-box"><input type="text" id="in-sop-monthly" placeholder="添加每月..."><button onclick="addSop('monthly')">+</button></div></div>
+                    <div class="pixel-panel"><div class="panel-title">🎯 年度 SOP</div><div id="sop-yearly"></div><div class="input-box"><input type="text" id="in-sop-yearly" placeholder="添加年度..."><button onclick="addSop('yearly')">+</button></div></div>
+                    <div class="pixel-panel" style="background:#e0c3fc; border-color:#7b2cbf;">
+                        <div class="panel-title" style="color:#7b2cbf;">⏳ 周期穿梭测试器 (仅测试用)</div>
+                        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
+                            <button onclick="simulateCycle('daily')" style="padding:5px 10px; background:#fff; border:2px solid #000; cursor:pointer;">模拟过了一天</button>
+                            <button onclick="simulateCycle('weekly')" style="padding:5px 10px; background:#fff; border:2px solid #000; cursor:pointer;">模拟过了一周</button>
+                            <button onclick="simulateCycle('monthly')" style="padding:5px 10px; background:#fff; border:2px solid #000; cursor:pointer;">模拟过了一月</button>
+                            <button onclick="simulateCycle('yearly')" style="padding:5px 10px; background:#fff; border:2px solid #000; cursor:pointer;">模拟过了一年</button>
+                        </div>
+                    </div>
+                `;
+                renderSop('daily', 'sop-daily'); renderSop('weekly', 'sop-weekly'); renderSop('monthly', 'sop-monthly'); renderSop('yearly', 'sop-yearly');
+            }
+            else if (type === 'dungeon') {
+                subTitle.innerText = 'APL CAMPAIGN';
+                subContent.innerHTML = `
+                    <div class="pixel-panel">
+                        <div class="panel-title">🏥 副本基础信息</div>
+                        <div style="font-size:16px; margin-bottom:10px;">驻扎起始日：</div>
+                        <div class="input-box">
+                            <input type="date" id="in-hospital-date" value="${gameData.hospital.date || ''}">
+                            <button onclick="saveHospitalDate()">记录</button>
+                        </div>
+                    </div>
+                    <div class="pixel-panel" style="border-color:#e0548f;">
+                        <div class="panel-title" style="color:#4a1b5e;">阶段一：诱导缓解 (Boss战)</div>
+                        <button onclick="unlockBadge('b10'); alert('诱导通关！');" style="width:100%; margin-top:10px; padding:10px; background:#4dffb8; color:#fff; border:2px solid #3e1f5c; font-family:'VT323'; font-size:18px; cursor:pointer;">标记诱导通关</button>
+                    </div>
+                `;
+            }
+            else if (type === 'fun') {
+                subTitle.innerText = 'INVENTORY';
+                let html = '';
+                const cats = [
+                    { key: 'games', label: '🎮 游戏' }, { key: 'movies', label: '🎬 影视' }, 
+                    { key: 'books', label: '📚 书籍' }, { key: 'dramas', label: '🎧 广播剧' }, 
+                    { key: 'podcasts', label: '🎙️ 播客' }
+                ];
+                cats.forEach(cat => {
+                    html += `<div class="pixel-panel" style="background:#faeef5;">`;
+                    html += `<div class="fold-header" onclick="toggleFold('fold-${cat.key}-pending')">📌 ${cat.label} (待完成) <span>▼</span></div>`;
+                    html += `<div class="fold-content open" id="fold-${cat.key}-pending">`;
+                    gameData.collections[cat.key].pending.forEach((item, idx) => {
+                        html += `<div class="task-item"><div class="task-check" onclick="moveFun('${cat.key}', 'pending', 'done', ${idx})"></div><span class="task-text">${item.text}</span><span class="del-btn" onclick="delFun('${cat.key}', 'pending', ${idx})">✕</span></div>`;
+                    });
+                    html += `<div class="input-box"><input type="text" id="in-fun-${cat.key}" placeholder="添加新目标..."><button onclick="addFun('${cat.key}')">+</button></div>`;
+                    html += `</div></div>`;
+
+                    html += `<div class="pixel-panel" style="background:#ffe6f2;">`;
+                    html += `<div class="fold-header" onclick="toggleFold('fold-${cat.key}-done')">🏆 ${cat.label} (已入库) <span>▼</span></div>`;
+                    html += `<div class="fold-content open" id="fold-${cat.key}-done">`;
+                    if(gameData.collections[cat.key].done.length === 0) html += `<div style="color:#888; font-size:14px; margin-bottom:10px;">暂无战利品</div>`;
+                    gameData.collections[cat.key].done.forEach((item, idx) => {
+                        html += `<div class="task-item done"><div class="task-check" onclick="moveFun('${cat.key}', 'done', 'pending', ${idx})"></div><span class="task-text">${item.text}</span><span class="del-btn" onclick="delFun('${cat.key}', 'done', ${idx})">✕</span></div>`;
+                    });
+                    html += `</div></div>`;
+                });
+                subContent.innerHTML = html;
+            }
+            else if (type === 'badges') {
+                subTitle.innerText = 'MEDALS (42)';
+                let html = `<div class="pixel-panel"><div class="badge-grid">`;
+                gameData.badges.forEach(b => {
+                    html += `<div class="badge-item ${b.unlocked ? 'unlocked' : ''}"><div class="badge-icon">${b.unlocked ? b.icon : '🔒'}</div><div class="badge-name">${b.unlocked ? b.name : '???'}</div></div>`;
+                });
+                html += `</div></div>`;
+                subContent.innerHTML = html;
+            }
+            // --- 属性面板（加上了饮水输入） ---
+            else if (type === 'health-record') {
+                subTitle.innerText = 'UPDATE STATUS';
+                const h = gameData.health[todayStr] || { temp: '', steps: '', water: 0 };
+                subContent.innerHTML = `
+                    <div class="pixel-panel">
+                        <div style="margin-bottom:10px; font-weight:bold; color:#7b2cbf;">体温 (°C)</div>
+                        <div class="input-box"><input type="text" id="in-temp" placeholder="如 36.5" value="${h.temp}"></div>
+                        
+                        <div style="margin:15px 0 10px; font-weight:bold; color:#7b2cbf;">今日步数</div>
+                        <div class="input-box"><input type="number" id="in-steps" placeholder="如 3000" value="${h.steps}"></div>
+                        
+                        <div style="margin:15px 0 10px; font-weight:bold; color:#7b2cbf;">今日饮水 (杯)</div>
+                        <div class="input-box"><input type="number" id="in-water" placeholder="如 6" value="${h.water || 0}"></div>
+
+                        <button onclick="saveHealth()" style="width:100%; margin-top:20px; padding:10px; background:#b892cf; color:#fff; border:2px solid #3e1f5c; font-family:'VT323'; font-size:20px; cursor:pointer;">保存属性 (+10 EXP)</button>
+                    </div>
+                `;
+            }
+            else if (type === 'shop') {
+                subTitle.innerText = 'SHOP';
+                let html = `<div class="pixel-panel"><div class="panel-title">金币: ${gameData.player.coins} 🪙</div><div id="shop-list"></div></div>`;
+                html += `<div class="pixel-panel"><div class="panel-title">编辑补给</div><div class="input-box"><input type="text" id="shop-name" placeholder="奖励名称"><input type="number" id="shop-price" placeholder="金币" style="width:80px;"><button onclick="addShop()">+</button></div></div>`;
+                subContent.innerHTML = html;
+                renderShop();
+            }
+            else if (type === 'notes') {
+                subTitle.innerText = 'DIARY & CALENDAR';
+                const now = new Date();
+                let calHtml = `<div class="pixel-panel"><div class="panel-title">${now.getFullYear()}年${now.getMonth()+1}月 (点格子看记录)</div><div class="cal-grid">`;
+                for(let i=1; i<=30; i++) {
+                    const dStr = `2026-10-${i<10?'0'+i:i}`;
+                    const hasData = gameData.health[dStr];
+                    calHtml += `<div class="cal-cell ${hasData ? 'has-data' : ''}" onclick="viewDayData('${dStr}')">${i}</div>`;
+                }
+                calHtml += `</div></div>`;
+                subContent.innerHTML = calHtml + `
+                    <div class="pixel-panel">
+                        <div class="panel-title">冒险手札</div>
+                        <textarea id="diary-text" style="width:100%; height:150px; border:2px solid #3e1f5c; padding:10px; font-family:'VT323'; font-size:18px;" placeholder="记录心得...">${localStorage.getItem('APL_Notes') || ''}</textarea>
+                        <button onclick="saveNotes()" style="width:100%; margin-top:10px; padding:10px; background:#e0548f; color:#fff; border:2px solid #3e1f5c; font-family:'VT323'; font-size:18px; cursor:pointer;">保存手札</button>
+                    </div>
+                `;
+            }
+            // --- 多维度图表统计 ---
+            else if (type === 'stats') {
+                subTitle.innerText = 'STATISTICS';
+                subContent.innerHTML = `
+                    <div class="pixel-panel">
+                        <div class="panel-title">📈 体温趋势 (近7天)</div>
+                        <div class="chart-box"><canvas id="lineChart"></canvas></div>
+                    </div>
+                    <div class="pixel-panel">
+                        <div class="panel-title">📊 步数记录 (近7天)</div>
+                        <div class="chart-box"><canvas id="barChart"></canvas></div>
+                    </div>
+                    <div class="pixel-panel">
+                        <div class="panel-title">🎒 战利品占比</div>
+                        <div class="chart-box"><canvas id="pieChart"></canvas></div>
+                    </div>
+                `;
+                setTimeout(() => { drawLineChart(); drawBarChart(); drawPieChart(); }, 100);
+            }
+            else if (type === 'settings') {
+                subTitle.innerText = 'SYSTEM';
+                subContent.innerHTML = `
+                    <div class="pixel-panel">
+                        <button onclick="exportData()" style="width:100%; padding:10px; background:#4db8ff; color:#fff; border:2px solid #3e1f5c; font-family:'VT323'; font-size:18px; margin-bottom:10px; cursor:pointer;">导出数据</button>
+                        <button onclick="importData()" style="width:100%; padding:10px; background:#ffd700; color:#fff; border:2px solid #3e1f5c; font-family:'VT323'; font-size:18px; margin-bottom:10px; cursor:pointer;">导入数据</button>
+                        <button onclick="resetGame()" style="width:100%; padding:10px; background:#ff4d88; color:#fff; border:2px solid #3e1f5c; font-family:'VT323'; font-size:18px; cursor:pointer;">重置游戏</button>
+                    </div>
+                `;
+            }
+        }
+
+        function closeSubPage() { subPage.classList.remove('open'); }
+        function toggleFold(id) { document.getElementById(id).classList.toggle('open'); }
+        function viewDayData(dateStr) {
+            const h = gameData.health[dateStr];
+            if(!h) return alert(`${dateStr} 无战斗记录。`);
+            alert(`【${dateStr} 战斗数据】\n体温: ${h.temp || '--'}°C\n步数: ${h.steps || '--'} 步\n饮水: ${h.water || 0} 杯`);
+        }
+
+        function simulateCycle(type) {
+            const d = new Date();
+            if(type === 'daily') d.setDate(d.getDate() + 1);
+            if(type === 'weekly') d.setDate(d.getDate() + 7);
+            if(type === 'monthly') d.setMonth(d.getMonth() + 1);
+            if(type === 'yearly') d.setFullYear(d.getFullYear() + 1);
+            
+            if(type === 'daily') gameData.cycles.daily = d.toISOString().split('T')[0];
+            if(type === 'weekly') gameData.cycles.weekly = '1999-1';
+            if(type === 'monthly') gameData.cycles.monthly = '1999-1';
+            if(type === 'yearly') gameData.cycles.yearly = '1999';
+            
+            saveGame();
+            alert(`已模拟过了${type==='daily'?'一天':type==='weekly'?'一周':type==='monthly'?'一月':'一年'}，SOP 状态已重置，内容保留！`);
+            openSubPage('sop');
+        }
+
+        // --- 绘图函数 (像素风) ---
+        function setupCanvas(id) {
+            const canvas = document.getElementById(id);
+            if(!canvas) return null;
+            const ctx = canvas.getContext('2d');
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            return { canvas, ctx };
+        }
+
+        function drawLineChart() {
+            const setup = setupCanvas('lineChart');
+            if(!setup) return;
+            const { canvas, ctx } = setup;
+            const w = canvas.width, h = canvas.height;
+            const pad = 20;
+            
+            // 获取近7天体温
+            let temps = [];
+            for(let i=6; i>=0; i--) {
+                const d = new Date(); d.setDate(d.getDate() - i);
+                const dStr = d.toISOString().split('T')[0];
+                const hData = gameData.health[dStr];
+                temps.push(hData && hData.temp ? parseFloat(hData.temp) : 36.5);
+            }
+            
+            ctx.strokeStyle = '#b892cf'; ctx.lineWidth = 1;
+            for(let i=0; i<=4; i++) { ctx.beginPath(); ctx.moveTo(pad, pad + (h-pad*2)*(i/4)); ctx.lineTo(w-pad, pad + (h-pad*2)*(i/4)); ctx.stroke(); }
+            
+            ctx.beginPath(); ctx.strokeStyle = '#ff4d88'; ctx.lineWidth = 3;
+            temps.forEach((val, i) => {
+                // 把 36-40 度映射到高度
+                let percent = (val - 35) / 5; 
+                if(percent < 0) percent = 0; if(percent > 1) percent = 1;
+                const x = pad + (w - pad*2) * (i / 6);
+                const y = h - pad - (percent * (h - pad*2));
+                if(i===0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            });
+            ctx.stroke();
+            
+            // 画点
+            temps.forEach((val, i) => {
+                let percent = (val - 35) / 5; 
+                if(percent < 0) percent = 0; if(percent > 1) percent = 1;
+                const x = pad + (w - pad*2) * (i / 6);
+                const y = h - pad - (percent * (h - pad*2));
+                ctx.beginPath(); ctx.fillStyle = '#ff4d88'; ctx.fillRect(x-3, y-3, 6, 6);
+            });
+        }
+
+        function drawBarChart() {
+            const setup = setupCanvas('barChart');
+            if(!setup) return;
+            const { canvas, ctx } = setup;
+            const w = canvas.width, h = canvas.height;
+            
+            let steps = [];
+            for(let i=6; i>=0; i--) {
+                const d = new Date(); d.setDate(d.getDate() - i);
+                const dStr = d.toISOString().split('T')[0];
+                const hData = gameData.health[dStr];
+                steps.push(hData && hData.steps ? parseInt(hData.steps) : 0);
+            }
+            const max = Math.max(...steps, 5000);
+            const barW = (w - 40) / 7;
+            
+            steps.forEach((val, i) => {
+                const barH = (val / max) * (h - 40);
+                const x = 20 + i * barW + 5;
+                const y = h - 20 - barH;
+                ctx.fillStyle = '#4db8ff';
+                ctx.fillRect(x, y, barW - 10, barH);
+                ctx.strokeStyle = '#3e1f5c'; ctx.lineWidth = 2;
+                ctx.strokeRect(x, y, barW - 10, barH);
+            });
+        }
+
+        function drawPieChart() {
+            const setup = setupCanvas('pieChart');
+            if(!setup) return;
+            const { canvas, ctx } = setup;
+            const cx = canvas.width/2, cy = canvas.height/2, r = Math.min(cx, cy)-10;
+            
+            const games = gameData.collections.games.done.length;
+            const movies = gameData.collections.movies.done.length;
+            const books = gameData.collections.books.done.length;
+            const dramas = gameData.collections.dramas.done.length;
+            const podcasts = gameData.collections.podcasts.done.length;
+            
+            const data = [games, movies, books, dramas, podcasts];
+            const total = data.reduce((a,b)=>a+b, 0);
+            const colors = ['#ff4d88', '#4db8ff', '#ffd700', '#b892cf', '#4dffb8'];
+            
+            if(total === 0) {
+                ctx.fillStyle = '#ddd'; ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#888'; ctx.font = '16px VT323'; ctx.textAlign = 'center'; ctx.fillText('暂无数据', cx, cy);
+                return;
+            }
+            
+            let start = -Math.PI/2;
+            data.forEach((val, i) => {
+                if(val === 0) return;
+                const angle = (val/total) * Math.PI*2;
+                ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,r,start,start+angle); ctx.fillStyle = colors[i]; ctx.fill();
+                start += angle;
+            });
+            ctx.beginPath(); ctx.arc(cx,cy,r*0.5,0,Math.PI*2); ctx.fillStyle = '#faeef5'; ctx.fill();
+            ctx.strokeStyle = '#3e1f5c'; ctx.lineWidth = 4; ctx.stroke();
+        }
+
+        // --- 内部操作 ---
+        function renderTodo() {
+            const l = document.getElementById('todo-list');
+            l.innerHTML = '';
+            gameData.todo.forEach((item, idx) => {
+                l.innerHTML += `<div class="task-item ${item.done ? 'done' : ''}"><div class="task-check" onclick="toggleTodo(${idx})"></div><span class="task-text">${item.text}</span><span class="del-btn" onclick="delTodo(${idx})">✕</span></div>`;
+            });
+        }
+        function toggleTodo(idx) {
+            const item = gameData.todo[idx];
+            item.done = !item.done;
+            if(item.done) gainReward(10, 5, item.text);
+            saveGame(); renderTodo();
+        }
+        function addTodo() {
+            const v = document.getElementById('in-todo').value;
+            if(v) { gameData.todo.push({ id: Date.now().toString(), text: v, done: false }); saveGame(); renderTodo(); }
+        }
+        function delTodo(idx) { gameData.todo.splice(idx, 1); saveGame(); renderTodo(); }
+
+        function renderSop(type, elId) {
+            const l = document.getElementById(elId);
+            l.innerHTML = '';
+            gameData.sop[type].forEach((item, idx) => {
+                l.innerHTML += `<div class="task-item ${item.done ? 'done' : ''}"><div class="task-check" onclick="toggleSop('${type}', ${idx})"></div><span class="task-text">${item.text}</span><span class="del-btn" onclick="delSop('${type}', ${idx})">✕</span></div>`;
+            });
+        }
+        function toggleSop(type, idx) {
+            const item = gameData.sop[type][idx];
+            item.done = !item.done;
+            if(item.done) gainReward(15, 10, item.text);
+            saveGame(); renderSop(type, 'sop-'+type);
+        }
+        function addSop(type) {
+            const v = document.getElementById('in-sop-'+type).value;
+            if(v) { gameData.sop[type].push({ id: Date.now().toString(), text: v, done: false }); saveGame(); renderSop(type, 'sop-'+type); }
+        }
+        function delSop(type, idx) {
+            if(confirm('删除此任务？')) { gameData.sop[type].splice(idx, 1); saveGame(); renderSop(type, 'sop-'+type); }
+        }
+
+        function saveHospitalDate() {
+            gameData.hospital.date = document.getElementById('in-hospital-date').value;
+            saveGame(); renderHealthPanel(); alert('驻扎日已记录！');
+        }
+
+        function moveFun(cat, from, to, idx) {
+            const item = gameData.collections[cat][from].splice(idx, 1)[0];
+            gameData.collections[cat][to].push(item);
+            if(to === 'done') gainReward(20, 15, '战利品入库'); 
+            saveGame(); openSubPage('fun');
+        }
+        function addFun(cat) {
+            const v = document.getElementById('in-fun-'+cat).value;
+            if(v) { gameData.collections[cat].pending.push({text: v}); saveGame(); openSubPage('fun'); }
+        }
+        function delFun(cat, state, idx) {
+            if(confirm('彻底删除？')) { gameData.collections[cat][state].splice(idx, 1); saveGame(); openSubPage('fun'); }
+        }
+
+        function renderShop() {
+            const l = document.getElementById('shop-list');
+            l.innerHTML = '';
+            gameData.shop.forEach((item, idx) => {
+                l.innerHTML += `<div class="task-item"><span style="font-size:24px;">${item.icon}</span><span class="task-text" style="margin-left:10px;">${item.name}</span><span style="color:#ff9900; font-weight:bold; margin-right:10px;">${item.price} 🪙</span><button onclick="buyItem(${idx})" style="background:#ffd700; border:2px solid #3e1f5c; padding:2px 10px; cursor:pointer;">兑换</button><span class="del-btn" onclick="delShop(${idx})">✕</span></div>`;
+            });
+        }
+        function buyItem(idx) {
+            const item = gameData.shop[idx];
+            if(gameData.player.coins < item.price) return alert('金币不足！去完成任务吧！');
+            gameData.player.coins -= item.price;
+            if(gameData.player.coins >= 1000) unlockBadge('b38');
+            if(item.name.includes('奶茶')) unlockBadge('b2');
+            alert(`成功兑换：${item.name}！`);
+            saveGame(); updateHUD(); openSubPage('shop');
+        }
+        function addShop() {
+            const name = document.getElementById('shop-name').value;
+            const price = parseInt(document.getElementById('shop-price').value);
+            if(name && price) { gameData.shop.push({ id: Date.now().toString(), name, price, icon: '🎁' }); saveGame(); openSubPage('shop'); }
+        }
+        function delShop(idx) { gameData.shop.splice(idx, 1); saveGame(); openSubPage('shop'); }
+
+        function saveHealth() {
+            const t = document.getElementById('in-temp').value;
+            const s = document.getElementById('in-steps').value;
+            const w = document.getElementById('in-water').value;
+            if(!gameData.health[todayStr]) gameData.health[todayStr] = {};
+            gameData.health[todayStr].temp = t;
+            gameData.health[todayStr].steps = s;
+            gameData.health[todayStr].water = parseInt(w) || 0;
+            gainReward(10, 5, '更新属性');
+            saveGame(); renderHealthPanel(); closeSubPage();
+        }
+
+        function saveNotes() { localStorage.setItem('APL_Notes', document.getElementById('diary-text').value); alert('已保存！'); }
+        function exportData() { navigator.clipboard.writeText(JSON.stringify(gameData)).then(() => alert('数据已复制！')); }
+        function importData() {
+            const str = prompt('请粘贴导出的数据：');
+            if(str) { try { gameData = JSON.parse(str); saveGame(); location.reload(); } catch(e) { alert('格式错误。'); } }
+        }
+        function resetGame() { if(confirm('确定清档吗？')) { localStorage.removeItem('APL_Pixel_v7'); location.reload(); } }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
+`;
+
+let view = new WebView();
+await view.loadHTML(html);
+await view.present();
